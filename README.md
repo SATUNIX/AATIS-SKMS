@@ -30,7 +30,7 @@ flowchart TD
 
   refresh --> rag3[RagStore]
 
-
+```
 
 ## Prerequisites
 
