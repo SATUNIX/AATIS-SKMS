@@ -1,5 +1,5 @@
 
-# AATIS SKMS Unified RAG & Research CLI
+# SKMS AATIS Module
 - Agentic Assistance for Testing Information Systems
 
 - Smart Knowledge Management System 0.0.1
@@ -14,6 +14,23 @@ A single Python-based CLI tool to:
 This tool utilizes AutoGen 0.6.1, SearXNG (search engine), Ollama (language model), and FAISS (vector database).
 
 ---
+```mermaid
+flowchart TD
+  main[main.py CLI] -->|generate| gen[generate_agent.py]
+  main -->|ask| ask[qa_agent.py]
+  main -->|refresh| refresh[ingest_reports.py]
+
+  gen --> search[SearxngSearchTool]
+  gen --> fetch[FetchWebpageTool]
+  gen --> rag1[RagStore]
+  gen --> model1[OllamaChatCompletionClient]
+
+  ask --> rag2[RagStore]
+  ask --> model2[OllamaChatCompletionClient]
+
+  refresh --> rag3[RagStore]
+
+
 
 ## Prerequisites
 
