@@ -1,0 +1,37 @@
+import sys
+import asyncio
+
+from agents.generate_agent import run_generate
+from agents.qa_agent import run_qa
+from rag.ingest_reports import refresh_reports
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python main.py [generate|ask|refresh] <topic/question>")
+        sys.exit(1)
+
+    cmd = sys.argv[1].lower()
+    if cmd == "generate":
+        if len(sys.argv) < 3:
+            print("Error: Missing topic.")
+            sys.exit(1)
+        topic = " ".join(sys.argv[2:])
+        asyncio.run(run_generate(topic))
+
+    elif cmd == "ask":
+        if len(sys.argv) < 3:
+            print("Error: Missing question.")
+            sys.exit(1)
+        question = " ".join(sys.argv[2:])
+        asyncio.run(run_qa(question))
+
+    elif cmd == "refresh":
+        refresh_reports()
+
+    else:
+        print(f"Unknown command: {cmd}")
+        print("Valid commands: generate, ask, refresh")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
