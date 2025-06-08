@@ -1,0 +1,4 @@
+{
+  "model": "mistral:7b",
+  "base_url": "http://localhost:11434"
+}
