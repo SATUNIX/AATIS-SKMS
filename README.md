@@ -1,174 +1,120 @@
-# AATIS-SKMS
-Experimental AATIS System. Smart Knowledge Management Experimentation. 
 
-# Smart Methodology Knowledge System Plus (SMKS+)
-*Slimline AATIS edition with self expanding research & knowledge management*
+# AATIS SKMS Unified RAG & Research CLI
+- Agentic Assistance for Testing Information Systems
 
----
+- Smart Knowledge Management System 0.0.1
 
-## Goals
 
-* **Deep Research Automation** fill knowledge gaps through curated web search & summarisation.  
-* **Multiâ€‘page Markdown Generation** produce, save & categorise rich documentation.  
-* **Persistent Knowledge Base** store human & AI‘generated docs; enable fast Q&A via RAG/FAISS.  
-* **User in the Loop Control**  accept feedback, refine files, remember preferences.  
-* **Lightweight & Secure** no active pentesting tools; focuses on cognition & content.
+A single Python-based CLI tool to:
 
----
+1. **generate**: Search the web and RAG store, summarize results into a timestamped markdown report.
+2. **ask**: Run a RAG-powered Question & Answer session over your previously saved reports.
+3. **refresh**: Ingest all markdown (`.md`) reports into a FAISS vector store for future queries.
 
-## High Level Architecture
-
-```mermaid
-graph TD
-  U(User) -->|Prompt / Feedback| RT(TaskRouter)
-  RT --> MT[MethodologyÂ Team]
-  RT --> WR[WebÂ ResearchÂ Team]
-  RT --> QA[Q&AÂ Team]
-  RT --> FM[FileÂ Mgr]
-  WR -->|Docs + metadata| ING[IngestionÂ Agent]
-  MT -->|Markdown drafts| FM
-  ING --> IDX[IndexÂ Builder]
-  FM --> ING
-  IDX --> VDB((FAISSÂ Vector DB))
-  VDB --> QA
-  QA -->|Answers| U
-  MT -->|Gap queries| WR
-  QA -. update .-> MT
-  U -->|File uploads (pdf/txt)| FM
-```
+This tool utilizes AutoGen 0.6.1, SearXNG (search engine), Ollama (language model), and FAISS (vector database).
 
 ---
 
-## Agent Teams & Responsibilities
+## Prerequisites
 
-| Team | Agents | Purpose | Key Tools |
-|------|--------|---------|-----------|
-| **Core Manager** | `TaskRouter` (decides which team handles a sub task), `ResourceScheduler` (rateâ€‘limits API / net calls) | Governance & orchestration | AutoGen `GroupChatManager`, pydantic config |
-| **Methodology** | `DocGenerator`, `GapAnalyzer` | Draft methodology pages, detect missing topics, request research | OpenAI models (tempÂ 0.6), Markdown templates |
-| **Web Research** | `SearchAgent`, `PageReader`, `SummaryAgent` | Query internet, scrape content, produce concise notes | DuckDuckGo API, newspaper3k, trafilatura |
-| **RAG Pipeline** | `IngestionAgent`, `IndexBuilder`, `Retriever` (`Librarian`) | Clean & chunk docs, build FAISS index, answer queries | LangChain, FAISS, sentenceâ€‘transformers |
-| **File Management** | `FileOrganizer`, `VersionController` | Save docs to `/knowledge/{topic}/vN`, maintain metadata JSON, commit to git if configured | Python `pathlib`, `gitpython` |
-| **Feedback & Editing** | `FeedbackListener`, `DocEditor` | Log user corrections, patch files, trigger reâ€‘index | Simstring diff, MarkdownÂ it |
-| **Memory & State** | SharedVectorMemory (FAISS), RelationalMemory (SQLite) | Store embeddings & metadata | FAISS, peewee ORM |
+- Python 3.8 or newer
+- Git
+- Running SearXNG instance (default URL: `http://localhost:8888`)
+- Running Ollama server (default URL: `http://localhost:11434`)
 
 ---
 
-## Data Flow Detail
+## Quickstart Guide
 
-1. **User Prompt**  `TaskRouter`  
-2. **Router** labels task (`write`, `research`, `question`, `feedback`).  
-3. **Methodology** writes draft or detects *knowledge gap*.  
-4. **Gap** triggers **Web Research** searches, scrapes, summarises.  
-5. **Ingestion** normalises new docs **IndexBuilder** updates FAISS.  
-6. **DocGenerator** finalises Markdown **FileOrganizer** saves with formatter.  
-7. **Retriever** services Q&A queries using hybrid (keyword + cosine) search.  
-8. **User Feedback** updates docs ingest & index.
-
----
-
-## Component Specs
-
-### TaskRouter (Core)
-```python
-class TaskRouter(Agent):
-    def route(self, task):
-        if task.type in {"ask", "lookup"}:
-            return "Retriever"
-        if "research" in task.tags or "gap" in task.tags:
-            return "WebResearch"
-        # fallthrough ...
-```
-*Maintains context map: task ID, thread state.*
-
-### GapAnalyzer
-* Embeds each draft section.  
-* Searches FAISS for **< sim 0.60** segments â†’ missing.  
-* Emits `research_needed` tasks with keywords.
-
-### 5.3 SearchAgent
-* Queries DDG top n links.  
-* Filters by domain allow list / date.  
-* Hands URLs to `PageReader`.
-
-### IndexBuilder
-```bash
-python ingest.py --input ./knowledge --out ./db/faiss
-```
-* Uses `text_splitter` (chunk 800/200 overlap).  
-* Stores `{uuid, path, chunk_id, tags}` in SQLite.
-
-*(Further class templates in Appendix A).*
-
----
-
-## Directory Layout
-
-```
-SMKS/
-â”œâ”€â”€ core/
-â”‚   â””â”€â”€ router.py
-â”œâ”€â”€ agents/
-â”‚   â”œâ”€â”€ methodology/
-â”‚   â”œâ”€â”€ web_research/
-â”‚   â””â”€â”€ rag/
-â”œâ”€â”€ knowledge/
-â”‚   â””â”€â”€ <topic>/
-â”‚       â”œâ”€â”€ v1/
-â”‚       â”‚   â””â”€â”€ index.md
-â”‚       â””â”€â”€ v2/ ...
-â”œâ”€â”€ db/
-â”‚   â”œâ”€â”€ faiss/
-â”‚   â””â”€â”€ meta.sqlite
-â””â”€â”€ config.yaml
-```
-
----
-
-## AutoGen GroupChat Snippet
-
-```python
-from autogen import Agent, GroupChat, GroupChatManager
-
-router = TaskRouter(...)
-librarian = Retriever(...)
-docgen = DocGenerator(...)
-search = SearchAgent(...)
-
-gc = GroupChat(agents=[router, librarian, docgen, search],
-               manager=GroupChatManager(max_rounds=12))
-response = gc.chat("Write initial reconnaissance methodology for Azure AD")
-```
-
----
-
-## User Facing CLI
+### Step 1: Clone the Repository
 
 ```bash
-$ smks new "Internal Pentest on Windows Server 2019"
-$ smks ask "How to avoid Azure ATP detection?"
-$ smks feedback file.md --line 84 "This technique is outdated"
+git clone https://your.repo.url/project.git
+cd project
 ```
 
-All commands trigger underlying agents via argparse â†’ RPC.
+### Step 2: Setup Virtual Environment
+
+Linux/macOS:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows:
+```bash
+python -m venv .venv
+.venv\Scriptsctivate
+```
+
+### Step 3: Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install autogen-agentchat==0.6.1 "autogen-ext[ollama]" requests beautifulsoup4 sentence-transformers faiss-cpu
+```
+
+### Step 4: Create Initialization Files
+
+```bash
+touch tools/__init__.py agents/__init__.py rag/__init__.py
+```
+
+### Step 5: Configure Ollama Client
+
+Edit the file `config/ollama_config.json`:
+
+```json
+{
+  "model": "llama3",
+  "base_url": "http://localhost:11434"
+}
+```
 
 ---
 
-## Security & Ethics
+## Usage Instructions
 
-* **No code execution** all content strictly text.  
-* **Content provenance** stored (`source_url`, timestamp).  
-* **Rateâ€‘limiting** to respect website TOS.  
-* **User approval** before persisting scraped excerpts.
+### Generate a New Report
+
+This command searches the web, summarizes findings using Ollama, and saves the output as a timestamped markdown file:
+
+```bash
+python main.py generate "quantum computing breakthroughs"
+```
+
+### Refresh RAG Database
+
+Ingest all existing markdown reports into the FAISS database:
+
+```bash
+python main.py refresh
+```
+
+### Ask a Question
+
+Use this to query your RAG database and model knowledge:
+
+```bash
+python main.py ask "What did we learn about quantum entanglement?"
+```
 
 ---
 
-## Future Work
+## Configuration Options
 
-* plugin for browser? save information on sites  
-* multitenant workspace isolation  
-* optional vision capability for diagram OCR
+- **SearXNG endpoint**: Modify `tools/searxng_search.py`.
+- **Ollama model settings**: Adjust in `config/ollama_config.json`.
+- **Embedding model**: Set in `rag/rag_store.py` (default is `all-MiniLM-L6-v2`).
 
 ---
 
-### Appendix A: Agent Class Skeletons
-*(truncated for brevity see `/agents/` templates)*
+## Troubleshooting Common Issues
+
+- Connection errors to SearXNG or Ollama: Ensure services are running and URLs are correct.
+- No reports found during refresh: Confirm that you have run the `generate` command at least once.
+- FAISS errors: Check file permissions or delete and regenerate the `rag/index.faiss` file.
+
+---
+
+You are now ready to use the Unified RAG & Research CLI tool.
