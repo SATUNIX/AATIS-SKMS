@@ -25,10 +25,10 @@ flowchart TD
   gen --> rag1[RagStore]
   gen --> model1[OllamaChatCompletionClient]
 
-  ask --> rag1[RagStore]
+  ask --> rag2[RagStore]
   ask --> model2[OllamaChatCompletionClient]
 
-  refresh --> rag1[RagStore]
+  refresh --> rag3[RagStore]
 
 ```
 
