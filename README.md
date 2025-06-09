@@ -1,9 +1,9 @@
 
 # SKMS AATIS Module
-- Agentic Assistance for Testing Information Systems
+Agentic Assistance for Testing Information Systems
+Smart Knowledge Management System 0.0.1
 
-- Smart Knowledge Management System 0.0.1
-
+> Fully Local & Privacy Friendly, (only outbound is websearches which is currently disabled) 
 
 A single Python-based CLI tool to:
 
