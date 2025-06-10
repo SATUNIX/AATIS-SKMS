@@ -9,7 +9,7 @@ from rag.rag_store import RagStore
 
 async def run_qa(question: str, config_path="config/ollama_config.json"):
     # Load Ollama client
-    cfg = json.load(open(config_path))
+    cfg = json.load(open(config_path, encoding="utf-8"))
     client = OllamaChatCompletionClient(**cfg)
 
     # RAG retrieve
