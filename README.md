@@ -5,6 +5,8 @@ Smart Knowledge Management System 0.0.1
 
 > Fully Local & Privacy Friendly, (only outbound is websearches which is currently disabled) 
 
+See issues page for current known issues.
+
 A single Python-based CLI tool to:
 
 1. **generate**: Search the web and RAG store, summarize results into a timestamped markdown report.
