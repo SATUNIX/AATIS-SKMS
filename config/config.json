@@ -1,0 +1,84 @@
+import os
+import json
+import requests
+import asyncio
+from pathlib import Path
+from crawl4ai import AsyncWebCrawler
+
+# ─── Load configuration ────────────────────────────────────────────────────────
+CONFIG_PATH = Path(__file__).parent / "config" / "config.json"
+if not CONFIG_PATH.is_file():
+    raise FileNotFoundError(f"Config file not found at {CONFIG_PATH}")
+
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    config = json.load(f)
+
+# Validate required config fields
+for field in ("serpapi_api_key", "query", "num_results"):
+    if field not in config:
+        raise KeyError(f"Missing required config field: '{field}'")
+
+# ─── SerpAPI Search Tool ──────────────────────────────────────────────────────
+class SerpAPISearchTool:
+    """
+    SerpAPI integration to retrieve top-N search result URLs.
+    """
+    def __init__(self, api_key: str, engine: str = "google"):
+        self.api_key = api_key
+        self.endpoint = "https://serpapi.com/search.json"
+        self.engine = engine
+
+    def search(self, query: str, num_results: int = 3, **kwargs) -> list[str]:
+        """
+        Perform a SerpAPI search.
+        :param query: Search query string.
+        :param num_results: Number of URLs to return.
+        :return: List of result URLs.
+        """
+        params = {
+            "q": query,
+            "api_key": self.api_key,
+            "engine": self.engine,
+            "num": num_results,
+        }
+        params.update(kwargs)
+        resp = requests.get(self.endpoint, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        organic = data.get("organic_results", [])
+        urls = []
+        for item in organic[:num_results]:
+            url = item.get("link") or item.get("url")
+            if url:
+                urls.append(url)
+        return urls
+
+# ─── Crawl Function ───────────────────────────────────────────────────────────
+async def crawl_urls(urls: list[str]):
+    """
+    Crawl a list of URLs using crawl4ai and print Markdown output.
+    """
+    async with AsyncWebCrawler() as crawler:
+        for url in urls:
+            try:
+                result = await crawler.arun(url=url)
+                print(f"# Results for {url}\n")
+                print(result.markdown)
+                print("\n" + "="*80 + "\n")
+            except Exception as e:
+                print(f"Error crawling {url}: {e}")
+
+# ─── Main Entry Point ─────────────────────────────────────────────────────────
+async def main():
+    query       = config["query"]
+    num_results = config["num_results"]
+    api_key     = config["serpapi_api_key"]
+    engine      = config.get("serpapi_engine", "google")
+
+    search_tool = SerpAPISearchTool(api_key=api_key, engine=engine)
+    urls = search_tool.search(query, num_results=num_results)
+    print(f"Found URLs for '{query}':\n  " + "\n  ".join(urls) + "\n")
+    await crawl_urls(urls)
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -6,8 +6,7 @@ from datetime import datetime
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_core.models import SystemMessage, UserMessage
 
-from tools.searxng_search import SearxngSearchTool
-from tools.fetch_webpage import FetchWebpageTool
+from tools.web_search import SimpleSearchFetcher
 from rag.rag_store import RagStore
 
 from rich.console import Console
@@ -32,20 +31,21 @@ async def run_generate(topic: str, config_path: str = "config/ollama_config.json
     context_section = "\n\n".join(rag_hits)
 
     # 3) Web search + fetch
-    searcher = SearxngSearchTool()
-    fetcher = FetchWebpageTool()
-    with console.status(f"[bold blue]Searching web for: {topic}"):
-        web_hits = searcher.search(topic)
-    if not web_hits:
-        console.print("[bold yellow]No search results found.[/]")
-    pages = []
-    for hit in web_hits:
-        url = hit.get("link")
-        with console.status(f"[bold blue]Fetching {url}"):
-            try:
-                pages.append(fetcher.fetch(url))
-            except Exception as e:
-                console.print(f"[bold red]Failed to fetch {url}:[/] {e}")
+    sf = SimpleSearchFetcher(num_results=3)
+    pages = sf.run(topic)  # now also writes into web_content/
+
+    # pages is a dict[url->snippet]
+    web_sections = []
+    for url, snippet in pages.items():
+        web_sections.append(f"### {url}\n\n{snippet}")
+
+    web_findings_md = "\n\n---\n\n".join(web_sections)
+    report_md = (
+        f"# Report on: {topic}\n\n"
+        "## Web Findings\n\n"
+        f"{web_findings_md}\n\n"
+        "## Analysis and Recommendations\n"
+    )
 
     # 4) Fallback if no content
     if not rag_hits and not pages:

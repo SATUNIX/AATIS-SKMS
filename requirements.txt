@@ -1,8 +1,14 @@
 autogen-agentchat==0.6.1
-autogen-ext[ollama]
+autogen-core==0.6.1
+autogen-ext[ollama]==0.6.1
+
 requests
 beautifulsoup4
+duckduckgo-search
+readability-lxml
+
 sentence-transformers
 faiss-cpu
+
 rich
 colorama

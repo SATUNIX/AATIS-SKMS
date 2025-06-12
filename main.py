@@ -4,7 +4,7 @@ import asyncio
 from agents.generate_agent import run_generate
 from agents.generate_agent_large import run_generate as run_generate_large
 from agents.qa_agent import run_qa
-from rag.ingest_reports import refresh_reports
+from rag.ingest import refresh_store
 
 def main():
     if len(sys.argv) < 2:
@@ -34,7 +34,7 @@ def main():
         asyncio.run(run_qa(question))
 
     elif cmd == "refresh":
-        refresh_reports()
+        refresh_store()
 
     else:
         print(f"Unknown command: {cmd}")

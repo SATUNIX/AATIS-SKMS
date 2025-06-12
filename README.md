@@ -3,7 +3,7 @@
 Agentic Assistance for Testing Information Systems
 Smart Knowledge Management System 0.0.1
 
-> Fully Local & Privacy Friendly, (only outbound is websearches which is currently disabled) 
+> Fully Local & Privacy Friendly, (only outbound is websearches via Bing Web Search API)
 
 See issues page for current known issues.
 
@@ -13,7 +13,7 @@ A single Python-based CLI tool to:
 2. **ask**: Run a RAG-powered Question & Answer session over your previously saved reports.
 3. **refresh**: Ingest all markdown (`.md`) reports into a FAISS vector store for future queries.
 
-This tool utilizes AutoGen 0.6.1, SearXNG (search engine), Ollama (language model), and FAISS (vector database).
+This tool utilizes AutoGen 0.6.1, the Bing Web Search API (search engine), Ollama (language model), and FAISS (vector database).
 
 ---
 ```mermaid
@@ -22,7 +22,7 @@ flowchart TD
   main -->|ask| ask[qa_agent.py]
   main -->|refresh| refresh[ingest_reports.py]
 
-  gen --> search[SearxngSearchTool]
+  gen --> search[BingSearchTool]
   gen --> fetch[FetchWebpageTool]
   gen --> rag1[RagStore]
   gen --> model1[OllamaChatCompletionClient]
@@ -38,7 +38,8 @@ flowchart TD
 
 - Python 3.8 or newer
 - Git
-- Running SearXNG instance (default URL: `http://localhost:8888`)
+- **Bing Search API Key**: Set the `BING_SEARCH_API_KEY` environment variable to your Bing Search API key.
+- **Bing Search Endpoint (optional)**: Set the `BING_SEARCH_ENDPOINT` environment variable (default: `https://api.bing.microsoft.com/v7.0/search`).
 - Running Ollama server (default URL: `http://localhost:11434`)
 
 ---
@@ -122,7 +123,7 @@ python main.py ask "What did we learn about quantum entanglement?"
 
 ## Configuration Options
 
-- **SearXNG endpoint**: Modify `tools/searxng_search.py`.
+- **Bing Search API**: Provide your API key via the `BING_SEARCH_API_KEY` environment variable and optionally override the endpoint with `BING_SEARCH_ENDPOINT`.
 - **Ollama model settings**: Adjust in `config/ollama_config.json`.
 - **Embedding model**: Set in `rag/rag_store.py` (default is `all-MiniLM-L6-v2`).
 
@@ -130,7 +131,7 @@ python main.py ask "What did we learn about quantum entanglement?"
 
 ## Troubleshooting Common Issues
 
-- Connection errors to SearXNG or Ollama: Ensure services are running and URLs are correct.
+- Connection errors to the Bing Search API or Ollama: Ensure your API key is valid, environment variables are set, and endpoints are correct.
 - No reports found during refresh: Confirm that you have run the `generate` command at least once.
 - FAISS errors: Check file permissions or delete and regenerate the `rag/index.faiss` file.
 

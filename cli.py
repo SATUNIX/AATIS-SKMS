@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import signal
 
 from rich.console import Console
 from rich.panel import Panel
@@ -9,7 +10,7 @@ from rich import box
 from agents.generate_agent import run_generate
 from agents.generate_agent_large import run_generate as run_generate_large
 from agents.qa_agent import run_qa
-from rag.ingest_reports import refresh_reports
+from rag.ingest import refresh_store
 
 console = Console()
 
@@ -33,26 +34,74 @@ async def handle_choice(choice: str):
         await run_qa(question)
     elif choice == "4":
         with console.status("[bold blue]Refreshing RAG reports…"):
-            refresh_reports()
-        console.print(Panel("[bold green]Refresh complete![/]", title="RAG Refresh", border_style="green", box=box.ROUNDED))
+            refresh_store()
+        console.print(
+            Panel(
+                "[bold green]Refresh complete![/]",
+                title="RAG Refresh",
+                border_style="green",
+                box=box.ROUNDED
+            )
+        )
     elif choice == "5":
-        console.print(Panel("Goodbye!", title="Exit", border_style="magenta", box=box.ROUNDED))
+        console.print(
+            Panel(
+                "Goodbye!",
+                title="Exit",
+                border_style="magenta",
+                box=box.ROUNDED
+            )
+        )
         sys.exit(0)
     else:
-        console.print(Panel("Invalid choice, please try again.", title="Error", border_style="red", box=box.ROUNDED))
-
+        console.print(
+            Panel(
+                "Invalid choice, please try again.",
+                title="Error",
+                border_style="red",
+                box=box.ROUNDED
+            )
+        )
 
 def display_menu():
-    console.clear()
-    console.print(Panel(MENU_TEXT, title="Main Menu", border_style="cyan", box=box.ROUNDED, padding=(1, 2)))
-
+    # Do NOT clear the console so previous output remains visible
+    console.print(
+        Panel(
+            MENU_TEXT,
+            title="Main Menu",
+            border_style="cyan",
+            box=box.ROUNDED,
+            padding=(1, 2)
+        )
+    )
 
 def main():
-    while True:
-        display_menu()
-        choice = Prompt.ask("Select an option", choices=["1", "2", "3", "4", "5"])
-        asyncio.run(handle_choice(choice))
+    # Handle Ctrl+C globally
+    def _exit_gracefully(signum, frame):
+        console.print(
+            Panel(
+                "Goodbye!",
+                title="Exit",
+                border_style="magenta",
+                box=box.ROUNDED
+            )
+        )
+        sys.exit(0)
 
+    signal.signal(signal.SIGINT, _exit_gracefully)
+
+    while True:
+        try:
+            display_menu()
+            choice = Prompt.ask(
+                "Select an option",
+                choices=["1", "2", "3", "4", "5"]
+            )
+            # Run each choice in its own event loop
+            asyncio.run(handle_choice(choice))
+        except KeyboardInterrupt:
+            # Fallback in case signal doesn't catch
+            _exit_gracefully(None, None)
 
 if __name__ == "__main__":
     main()
