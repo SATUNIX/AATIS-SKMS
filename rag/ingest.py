@@ -1,36 +1,54 @@
-# ingest.py
+# ============================
+# ingest.py (updated)
+# ============================
 import glob
 import os
 from rag.rag_store import RagStore
 
-def refresh_store(reports_dir="reports/", web_content_dir="web_content/"):
+
+def refresh_store(reports_dir: str = "reports/", web_content_dir: str = "web_content/") -> None:
+    """Ingest all markdown and raw‑text sources into the RAG store.
+
+    The function is idempotent; re‑running it simply appends any new
+    documents that are not already present.  Duplicate detection is
+    performed on SHA‑256 hashes before any embedding work, so the cost
+    of repeated runs is negligible.
     """
-    Ingest both .md reports and .txt web_content into the RAG index.
-    """
+
     store = RagStore()
 
-    # find all markdown reports
+    # ---------- discover files ----------------------------------------- #
     report_files = glob.glob(os.path.join(reports_dir, "*.md"))
-    # find all web content text files
-    web_files    = glob.glob(os.path.join(web_content_dir, "*.txt"))
-
+    web_files = glob.glob(os.path.join(web_content_dir, "*.txt"))
     all_files = report_files + web_files
+
     if not all_files:
         print("No reports or web content files found.")
         return
 
-    docs = []
+    # ---------- read & filter duplicates ------------------------------- #
+    new_docs = []
     for path in all_files:
         with open(path, "r", encoding="utf-8") as f:
-            docs.append(f.read())
+            text = f.read()
+        if store.is_duplicate(text):
+            continue
+        new_docs.append(text)
 
-    store.add_documents(docs)
+    if not new_docs:
+        print("No new unique documents to ingest.")
+        return
+
+    # ---------- embed & add ------------------------------------------- #
+    store.add_documents(new_docs)
     store.save()
+
     print(
-        f"Ingested {len(report_files)} reports "
-        f"and {len(web_files)} web content files "
-        "into RAG store."
+        f"Ingested {len(new_docs):,} new documents ("
+        f"{len(report_files):,} reports, {len(web_files):,} web snippets).  "
+        f"Store now contains {store.ntotal():,} vectors."
     )
+
 
 if __name__ == "__main__":
     refresh_store()
